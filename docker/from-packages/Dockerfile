@@ -33,7 +33,7 @@ ARG type
 # Optional. If defined then brand package will not be installed.
 ARG nobrand
 
-# UTF-8 locale is needed to handle file names with non-ASCII characters
+# UTF-8 locale is needed to handle file names with non-ASCII characters
 ENV LC_CTYPE C.UTF-8
 
 # Mount secret URL part (for type 'cool') securely
@@ -66,7 +66,9 @@ RUN --mount=type=secret,id=secret_key \
 # Update repos again
     apt-get update && \
 # Install Collabora Online (Collabora Office is a dependency)
+# --- ADDED collaboraofficebasis-impress HERE ---
     apt-get -y install coolwsd coolwsd-deprecated \
+                       collaboraofficebasis-impress \
 # Install all dictionaries
                        collaboraoffice-dict-* \
 # Install all language packs
@@ -118,12 +120,26 @@ RUN --mount=type=secret,id=secret_key \
             apt-get -y install code-brand; \
         fi; \
     fi && \
+# --- ADDED: Ensure template directory exists and has correct owner ---
+# Create the path just in case the package install missed it, and ensure ownership
+    mkdir -p /opt/collaboraoffice/share/template/common/presnt/ && \
+    chown -R cool:cool /opt/collaboraoffice/share/template && \
+# --- END ADDED SECTION ---
+# --- PERMISSION FIX START ---
+# Ensure the cool user/group exists before potentially modifying it (apt should create it, but belt-and-suspenders)
+    if ! getent group cool > /dev/null; then groupadd -r -g 109 cool; fi && \
+    if ! getent passwd cool > /dev/null; then useradd -r -g cool -u 109 -s /sbin/nologin -d /opt/cool cool; fi && \
 # Change cool uid/gid to 1001/1001
-    find /opt/cool -user cool -exec chown -h 1001:1001 {} \; && \
     usermod -u 1001 cool && groupmod -g 1001 cool && \
-    chown cool:cool /etc/coolwsd/coolwsd.xml && \
-# Fix ownership of config directory that will be modified on start of the container by cool user
-    chown cool:cool /etc/coolwsd && \
+# Recursively set ownership of /opt/cool AFTER changing the user/group ID
+# This ensures the runtime user (1001) owns everything needed for jailing, cache etc.
+    chown -R 1001:1001 /opt/cool && \
+# Update ownership of the template dir again using NUMERIC IDs now that user cool is 1001
+    chown -R 1001:1001 /opt/collaboraoffice/share/template && \
+# Set ownership for config files/dirs using numeric IDs for robustness
+    chown 1001:1001 /etc/coolwsd/coolwsd.xml && \
+    chown 1001:1001 /etc/coolwsd && \
+# --- PERMISSION FIX END ---
 # Remove packages which were only needed for installation (dependecies of curl, gnupg, fc-cache etc.)
     dpkg --purge --ignore-depends=apt-transport-https,cpio,curl,dirmngr,fontconfig,fontconfig-config,fonts-dejavu-core,gnupg,gnupg-l10n,gnupg-utils,gnupg2,gpg,gpg-agent,gpg-wks-client,gpg-wks-server,gpgconf,gpgsm,krb5-locales,libassuan0,libbrotli1,libcap2-bin,libcurl4,libexpat1,libfontconfig1,libfreetype6,libgpm2,libksba8,libldap-2.5-0,libldap-common,libncursesw6,libnghttp2-14,libnpth0,libpng16-16,libpsl5,libreadline8,librtmp1,libsasl2-2,libsasl2-modules,libsasl2-modules-db,libsqlite3-0,libssh2-1,libssl3,openssl,pinentry-curses,publicsuffix,readline-common apt-transport-https cpio curl dirmngr fontconfig-config fonts-dejavu-core fontconfig gnupg gnupg-l10n gnupg-utils gnupg2 gpg gpg-agent gpg-wks-client gpg-wks-server gpgconf gpgsm krb5-locales libassuan0 libbrotli1 libcap2-bin libcurl4 libexpat1 libfontconfig1 libfreetype6 libgpm2 libksba8 libldap-2.5-0 libldap-common libncursesw6 libnghttp2-14 libnpth0 libpng16-16 libpsl5 libreadline8 librtmp1 libsasl2-2 libsasl2-modules libsasl2-modules-db libsqlite3-0 libssh2-1 pinentry-curses publicsuffix readline-common && \
 # Remove perl-base, it's not needed and triggered some license scanner because of Paul Hsieh derivative license
