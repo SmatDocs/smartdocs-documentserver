@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # args:
-      #   nobrand: "yes" # Keep this if you want the CODE version
+      args:
+        nobrand: "yes" # Keep this if you want the CODE version
     image: smartdocs
     container_name: smartdocs
     restart: always
