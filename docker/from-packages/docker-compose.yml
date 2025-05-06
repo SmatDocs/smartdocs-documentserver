@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        nobrand: "yes" # Keep this if you want the CODE version
+      # args:
+      #   nobrand: "yes" # Keep this if you want the CODE version
     image: smartdocs
     container_name: smartdocs
     restart: always
@@ -18,9 +18,12 @@ services:
     volumes:
       # Add read-only mounts for host timezone info
       - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
+      - /etc/timezone:/etc/timezone:ro 
+      #- ./python_scripts:/opt/collaboraoffice/share/Scripts/python:ro
+      - ./python_scripts/GetText.py:/opt/collaboraoffice/share/Scripts/python/GetText.py:ro
+      
     environment: 
-      - extra_params=--o:mount_jail_tree=false --o:seccomp_action=allow --o:ssl.enable=false --o:user_interface.mode=classic
+      - extra_params=--o:mount_jail_tree=false --o:seccomp_action=allow --o:ssl.enable=false --o:user_interface.mode=classic --o:logging.level=debug
       - domain=(localhost|127\.0\.0\.1)
       - username=smartdocs
       - password="smartdocs2025" # Consider changing this password

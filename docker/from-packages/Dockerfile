@@ -69,6 +69,10 @@ RUN --mount=type=secret,id=secret_key \
 # --- ADDED collaboraofficebasis-impress HERE ---
     apt-get -y install coolwsd coolwsd-deprecated \
                        collaboraofficebasis-impress \
+
+# For working with python scripts invoked using UNO command
+                       collaboraofficebasis-python-script-provider \
+                       collaboraofficebasis-pyuno \
 # Install all dictionaries
                        collaboraoffice-dict-* \
 # Install all language packs
@@ -152,6 +156,9 @@ RUN --mount=type=secret,id=secret_key \
 # FIXME
 # Use the old starter script until we find out how to replace it.
 COPY /scripts/start-collabora-online.sh /
+ 
+RUN chown -R 1001:1001 /opt/collaboraoffice/share/Scripts/python
+
 
 # coolwsd listens on port 9980
 EXPOSE 9980
